@@ -2,11 +2,7 @@ pipeline {
     agent any
     
     environment {
-        POETRY_HOME = "$HOME/.poetry"
-        PATH = "$POETRY_HOME/bin:$PATH"
-        POETRY_VIRTUALENVS_CREATE = "true"
-        POETRY_VIRTUALENVS_IN_PROJECT = "true"
-        POETRY_VIRTUALENVS_OPTIONS_NO_SYMLINKS = "true"
+        PATH = "/usr/local/bin:${env.PATH}"
     }
     
     stages {
@@ -16,39 +12,34 @@ pipeline {
             }
         }
         
-        stage('Setup Python and Poetry') {
+        stage('Setup Dependencies') {
             steps {
                 script {
                     sh '''
-                        # Ensure Python 3 is installed
+                        # Ensure Homebrew is installed and updated
+                        which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                        brew update
+                        
+                        # Install Python and Poetry using Homebrew
+                        brew install python3
+                        brew install poetry
+                        
+                        # Verify installations
                         python3 --version
-                        
-                        # Install poetry if not already installed
-                        if ! command -v poetry &> /dev/null; then
-                            curl -sSL https://install.python-poetry.org | POETRY_HOME=$POETRY_HOME python3 -
-                        fi
-                        
-                        # Verify poetry installation
                         poetry --version
                         
-                        # Configure poetry
-                        poetry config virtualenvs.create true
-                        poetry config virtualenvs.in-project true
-                        poetry config virtualenvs.options.no-symlinks true
+                        # Configure poetry to not create virtual environments
+                        poetry config virtualenvs.create false
                     '''
                 }
             }
         }
         
-        stage('Install Dependencies') {
+        stage('Install Project Dependencies') {
             steps {
                 script {
                     sh '''
-                        # Remove any existing virtual environments
-                        rm -rf .venv || true
-                        rm -rf $(poetry env list --full-path) || true
-                        
-                        # Install dependencies
+                        # Install dependencies directly
                         poetry install
                     '''
                 }
@@ -59,7 +50,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Run tests with coverage
+                        # Run tests
                         poetry run pytest tests/test_math_operations.py -v
                     '''
                 }
