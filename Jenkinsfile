@@ -3,6 +3,8 @@ pipeline {
     
     environment {
         PATH = "/usr/local/bin:${env.PATH}"
+        PYTHON_VERSION = "3.13.3"
+        POETRY_VERSION = "2.1.2"
     }
     
     stages {
@@ -12,35 +14,25 @@ pipeline {
             }
         }
         
-        stage('Setup Dependencies') {
+        stage('Verify Environment') {
             steps {
                 script {
                     sh '''
-                        # Ensure Homebrew is installed and updated
-                        which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                        brew update
-                        
-                        # Install Python and Poetry using Homebrew
-                        brew install python3
-                        brew install poetry
-                        
-                        # Verify installations
-                        python3 --version
-                        poetry --version
-                        
-                        # Configure poetry to not create virtual environments
-                        poetry config virtualenvs.create false
+                        # Verify Python and Poetry versions
+                        python3 --version | grep "${PYTHON_VERSION}" || brew install python3@3.13
+                        poetry --version | grep "${POETRY_VERSION}" || brew install poetry
                     '''
                 }
             }
         }
         
-        stage('Install Project Dependencies') {
+        stage('Install Dependencies') {
             steps {
                 script {
                     sh '''
-                        # Install dependencies directly
-                        poetry install
+                        # Configure poetry and install dependencies
+                        poetry config virtualenvs.create false
+                        poetry install --no-interaction
                     '''
                 }
             }
@@ -50,7 +42,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Run tests
+                        # Run tests with detailed output
                         poetry run pytest tests/test_math_operations.py -v
                     '''
                 }
@@ -63,7 +55,7 @@ pipeline {
             cleanWs()
         }
         success {
-            echo 'All tests passed!'
+            echo 'All tests passed successfully!'
         }
         failure {
             echo 'Tests failed! Please check the logs for details.'
