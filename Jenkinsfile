@@ -4,6 +4,9 @@ pipeline {
     environment {
         POETRY_HOME = "$HOME/.poetry"
         PATH = "$POETRY_HOME/bin:$PATH"
+        POETRY_VIRTUALENVS_CREATE = "true"
+        POETRY_VIRTUALENVS_IN_PROJECT = "true"
+        POETRY_VIRTUALENVS_OPTIONS_NO_SYMLINKS = "true"
     }
     
     stages {
@@ -29,7 +32,9 @@ pipeline {
                         poetry --version
                         
                         # Configure poetry
+                        poetry config virtualenvs.create true
                         poetry config virtualenvs.in-project true
+                        poetry config virtualenvs.options.no-symlinks true
                     '''
                 }
             }
@@ -39,8 +44,9 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Clean any existing virtual environments
-                        poetry env remove --all || true
+                        # Remove any existing virtual environments
+                        rm -rf .venv || true
+                        rm -rf $(poetry env list --full-path) || true
                         
                         # Install dependencies
                         poetry install
