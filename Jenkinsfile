@@ -1,6 +1,11 @@
 pipeline {
     agent any
     
+    environment {
+        POETRY_HOME = "$HOME/.poetry"
+        PATH = "$POETRY_HOME/bin:$PATH"
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -12,11 +17,18 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        # Ensure Python 3 is installed
+                        python3 --version
+                        
                         # Install poetry if not already installed
-                        curl -sSL https://install.python-poetry.org | python3 -
-                        # Add poetry to PATH
-                        export PATH="/root/.local/bin:$PATH"
-                        # Configure poetry to create virtual environment in project directory
+                        if ! command -v poetry &> /dev/null; then
+                            curl -sSL https://install.python-poetry.org | POETRY_HOME=$POETRY_HOME python3 -
+                        fi
+                        
+                        # Verify poetry installation
+                        poetry --version
+                        
+                        # Configure poetry
                         poetry config virtualenvs.in-project true
                     '''
                 }
@@ -27,8 +39,11 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        export PATH="/root/.local/bin:$PATH"
-                        poetry install --with test
+                        # Clean any existing virtual environments
+                        poetry env remove --all || true
+                        
+                        # Install dependencies
+                        poetry install
                     '''
                 }
             }
@@ -38,7 +53,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        export PATH="/root/.local/bin:$PATH"
+                        # Run tests with coverage
                         poetry run pytest tests/test_math_operations.py -v
                     '''
                 }
