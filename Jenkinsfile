@@ -5,10 +5,17 @@ pipeline {
         PATH = "/opt/homebrew/bin:${env.PATH}"
     }
     
+    triggers {
+        pollSCM('*/5 * * * *')  // Poll every 5 minutes
+    }
+    
     stages {
-        stage('Checkout') {
+        stage('Checkout Python Add Repo') {
             steps {
-                checkout scm
+                // Clean workspace before checkout
+                cleanWs()
+                // Checkout the Python add repository
+                git url: 'https://github.com/jkalapati-ng/test_python_add.git', branch: 'main'
             }
         }
         
