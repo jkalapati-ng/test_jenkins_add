@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    environment {
+        PATH = "/opt/homebrew/bin:${env.PATH}"
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -12,6 +16,10 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        # Verify Poetry is available
+                        which poetry
+                        poetry --version
+                        
                         # Configure poetry and install dependencies
                         poetry config virtualenvs.create false
                         poetry install --no-interaction
